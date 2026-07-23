@@ -3,7 +3,7 @@ name: Build patched image (ghcr)
 on:
   push:
     branches:
-      - fix/reply-quote-contextinfo
+      - deploy/patched-build
   workflow_dispatch:
 
 jobs:
