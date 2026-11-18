@@ -85,6 +85,7 @@ import { createId as cuid } from '@paralleldrive/cuid2';
 import { Instance, Message } from '@prisma/client';
 import { createJid } from '@utils/createJid';
 import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
+import { resolveInitialConnectionClose } from '@utils/initial-connection-close';
 import { makeProxyAgent, makeProxyAgentUndici } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import { status } from '@utils/renderStatus';
@@ -502,6 +503,14 @@ export class BaileysStartupService extends ChannelStartupService {
       const isInitialConnection = !this.instance.wuid && (this.instance.qrcode?.count ?? 0) === 0;
 
       if (isInitialConnection) {
+        if (resolveInitialConnectionClose(statusCode) === 'clear-session') {
+          // The saved session was rejected (401). Without clearing it, every later
+          // connect reuses the same dead credentials and no QR code is generated.
+          this.logger.warn('Saved session rejected on initial connection, clearing it for a new QR code');
+          this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
+          return;
+        }
+
         this.logger.info('Initial connection closed, waiting for QR code generation...');
         return;
       }
